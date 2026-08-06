@@ -179,15 +179,23 @@ st.markdown("""
 div[data-testid="stWidgetLabel"] p {
     font-size: 17px;
 }
+/* Text inside each dropdown option */
+li[data-baseweb="menu-item"] div {
+    font-size: 18px;
+}
 
 /* Individual option text */
-div[data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p {
+div[data-testid="stSelectbox"] label div[data-testid="stMarkdownContainer"] p {
+    font-size: 17px;
+}
+
+div[data-testid="stFileUploader"] label div[data-testid="stMarkdownContainer"] p {
     font-size: 17px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-uploadOption  = st.radio(label="Select the upload file category", options=["Payment", "DirectUS"])
+uploadOption  = st.selectbox(label="Select the upload file category", options=["Payment", "DirectUS"])
 
 
 st.divider()
