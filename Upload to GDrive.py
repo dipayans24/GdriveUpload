@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import io
 import os
 import tempfile
 import warnings, os
@@ -159,13 +160,22 @@ def uploadFiles(file_paths, parent_folder_id, WSDate, service, delete_existing=T
     return uploaded_ids
 
 
-def save_upload(fileupload):
+def save_upload(fileupload, fileType = None):
     temp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(temp_dir, fileupload.name)
 
     with open(tmp_path, "wb") as f:
         f.write(fileupload.getvalue())
 
+    # if fileType:
+    #     credentials_buffer = io.BytesIO()
+    #     with open(credentials_buffer, "wb") as f:
+    #         f.write(fileupload.getvalue())
+    #     credentials_buffer.seek(0)
+
+    #     # Persist results
+    #     st.session_state["credentials_buffer"] = credentials_buffer
+    
     return tmp_path
         
 st.header("Upload to Gdrive")
@@ -199,19 +209,20 @@ uploadOption  = st.selectbox(label="Select the upload file category", options=["
 
 
 st.divider()
-
+credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
 fileupload = st.file_uploader(f"Upload the {uploadOption} file", type=["csv"])
 
-if fileupload:
-    credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
-
+if fileupload and credentialsFile:
     WSDate = str(st.date_input("Select the Next Sunday date",value=next_sunday()))
 
     btn = st.button("Upload Files")
 
     if btn:
         with st.spinner("Processing..."):
-            service = getGdriveService(save_upload(credentialsFile))
+            credentialsFile = save_upload(credentialsFile)
+            
+            
+            service = getGdriveService(credentialsFile)
             uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, False, "overwrite")
 
             st.success("File uploaded.")
