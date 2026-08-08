@@ -211,7 +211,7 @@ uploadOption  = st.selectbox(label="Select the upload file category", options=["
 st.divider()
 credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
 
-delPrevious = st.checkbox("Delete Existing?")
+delPrevious = st.checkbox("Delete Existing?", value = False)
 
 fileupload = st.file_uploader(f"Upload the {uploadOption} file", type=["csv"])
 
