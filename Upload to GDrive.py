@@ -147,14 +147,14 @@ def uploadFiles(file_paths, parent_folder_id, WSDate, service, delete_existing=T
     folder_id, exists = getOrCreateSubfolder(parent_folder_id, WSDate, service)
 
     if exists:
-        st.text(f"Folder '{WSDate}' already exists.")
+        st.write(f"Folder '{WSDate}' already exists.")
         if delete_existing:                     # <-- optional step
-            st.text("Deleting existing files in the folder...")
+            st.write("Deleting existing files in the folder...")
             deleteFilesInFolder(folder_id, service)
     else:
-        st.text(f"Created new folder '{WSDate}'.")
+        st.write(f"Created new folder '{WSDate}'.")
 
-    st.text("Uploading files...")
+    st.write("Uploading files...")
     uploaded_ids = uploadFilesToGdrive([file_paths], folder_id, service)
     st.success(f"Uploaded {len(uploaded_ids)} file(s).")
     return uploaded_ids
@@ -210,6 +210,9 @@ uploadOption  = st.selectbox(label="Select the upload file category", options=["
 
 st.divider()
 credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
+
+delPrevious = st.checkbox("Delete Existing?")
+
 fileupload = st.file_uploader(f"Upload the {uploadOption} file", type=["csv"])
 
 if fileupload and credentialsFile:
@@ -218,11 +221,14 @@ if fileupload and credentialsFile:
     btn = st.button("Upload Files")
 
     if btn:
-        with st.spinner("Processing..."):
+        with st.status("Processing...", expanded=True) as status:
             credentialsFile = save_upload(credentialsFile)
             
             
             service = getGdriveService(credentialsFile)
-            uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, False, "overwrite")
+            uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, True if delPrevious else False, "overwrite")
 
-            st.success("File uploaded.")
+            status.update(state="complete", expanded=False )
+
+
+        st.success("File uploaded.")
