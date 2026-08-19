@@ -178,9 +178,10 @@ def save_upload(fileupload, fileType = None):
     
     return tmp_path
         
-st.header("Upload to Gdrive")
 
-st.divider()
+st.set_page_config("📤 Upload to Gdrive", layout="wide")
+st.header("📤 Upload to Gdrive", divider=True, text_alignment="center")
+
 FolderMapping = {"Payment":"0AHGO663tIOm5Uk9PVA", "DirectUS":"0AHH0Svj1my00Uk9PVA"}
 
 st.markdown("""
