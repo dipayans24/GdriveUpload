@@ -247,4 +247,4 @@ else:
             with col4:
                st.link_button("Open MEGA Exotic", "https://megaexotic.streamlit.app/", width  = "stretch") 
             with col5:
-               st.link_button("Open GdriveUpload", "https://gdriveupload.streamlit.app/", width  = "stretch")
+               st.link_button("Open MEGA AC", "https://megaac.streamlit.app/", width  = "stretch")
