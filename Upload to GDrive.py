@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 import io
 import os
 import tempfile
@@ -7,8 +7,10 @@ warnings.filterwarnings('ignore')
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 from googleapiclient.http import MediaFileUpload
- 
+from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
+import pandas as pd
+import gspread
 
 def next_sunday():
     """
@@ -159,30 +161,37 @@ def uploadFiles(file_paths, parent_folder_id, WSDate, service, delete_existing=T
     st.success(f"Uploaded {len(uploaded_ids)} file(s).")
     return uploaded_ids
 
+def getSheet(sheet_id, sheet_name, credential_Upload):
+  scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+  creds = ServiceAccountCredentials.from_json_keyfile_name(credential_Upload, scope)
+  client = gspread.authorize(creds)
 
+  workbook = client.open_by_key(sheet_id)
+  values = workbook.worksheet(sheet_name).get_all_values()
+  records = workbook.worksheet(sheet_name).get_all_records()
+  # sheet_name = datetime.now().strftime("%b-%Y")
+
+  # Read the downloaded XLSX file into a pandas DataFrame
+  try:
+      paymentSlugs = pd.DataFrame(values[1:], columns=values[0])
+      return paymentSlugs, records, workbook
+  except:
+      return None
+  
 def save_upload(fileupload, fileType = None):
     temp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(temp_dir, fileupload.name)
 
     with open(tmp_path, "wb") as f:
         f.write(fileupload.getvalue())
-
-    # if fileType:
-    #     credentials_buffer = io.BytesIO()
-    #     with open(credentials_buffer, "wb") as f:
-    #         f.write(fileupload.getvalue())
-    #     credentials_buffer.seek(0)
-
-    #     # Persist results
-    #     st.session_state["credentials_buffer"] = credentials_buffer
     
     return tmp_path
         
 
-st.set_page_config("📤 Upload to Gdrive", layout="wide")
-st.header("📤 Upload to Gdrive", divider=True, text_alignment="center")
+st.set_page_config("📤 GDrive Bulk-Upload", layout="wide")
+st.header("📤 GDrive Bulk-Upload", divider=True, text_alignment="center")
 
-FolderMapping = {"Payment":"0AHGO663tIOm5Uk9PVA", "DirectUS":"0AHH0Svj1my00Uk9PVA"}
+FolderMapping = {"Payment":"0AHGO663tIOm5Uk9PVA", "DirectUS":"0AHH0Svj1my00Uk9PVA", "Webinar Attendance":"0ADY0C0Grd3teUk9PVA"}
 
 st.markdown("""
 <style>
@@ -206,35 +215,68 @@ div[data-testid="stFileUploader"] label div[data-testid="stMarkdownContainer"] p
 </style>
 """, unsafe_allow_html=True)
 
-uploadOption  = st.selectbox(label="Select the upload file category", options=["Payment", "DirectUS"])
 
+uploadOption  = st.selectbox(label="Select the upload file category", options=["Payment", "DirectUS", "Webinar Attendance"])
+
+if uploadOption not in ["Webinar Attendance"]:
+    WSDate = str(st.date_input("Select the Next Sunday date",value=next_sunday()))
+    delPrevious = st.checkbox("Delete Existing?" )
 
 st.divider()
-credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
+credentialsGDriveFile = st.file_uploader("Upload the Gdrive Credentials",type=["json"])
 
-delPrevious = st.checkbox("Delete Existing?", value = False)
+if uploadOption in ["Webinar Attendance"]:
+    credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
 
-fileupload = st.file_uploader(f"Upload the {uploadOption} file", type=["csv"])
+fileupload = st.file_uploader(f"Upload the {uploadOption} file(s)", type=["csv"], accept_multiple_files = True if uploadOption in ["Webinar Attendance"] else False)
 
-if fileupload and credentialsFile:
-    WSDate = str(st.date_input("Select the Next Sunday date",value=next_sunday()))
+if (fileupload and credentialsGDriveFile and WSDate and uploadOption not in ["Webinar Attendance"]) or \
+    (uploadOption in ["Webinar Attendance"] and fileupload and credentialsGDriveFile and credentialsFile):     
 
     btn = st.button("Upload Files")
 
     if btn:
         with st.status("Processing...", expanded=True) as status:
-            credentialsFile = save_upload(credentialsFile)
-            
-            
-            service = getGdriveService(credentialsFile)
-            uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, True if delPrevious else False, "overwrite")
+            credentialsGDriveFile = save_upload(credentialsGDriveFile)
+        
+            service = getGdriveService(credentialsGDriveFile)
 
+            if uploadOption in ["Webinar Attendance"]:
+               
+
+                credentialsFile = save_upload(credentialsFile)
+                WebinarDetails, records, workbook = getSheet("1wUviIGWnfOeTTYW8dlnIspAi2G91mgMiP607i6PGncE", "WebinarDetails", credentialsFile)
+                WebinarDetails = WebinarDetails[WebinarDetails["Cancelled"] != "Yes"]
+                WebinarDetails["WebinarID"] = WebinarDetails["WebinarID"].str.replace(r"\W", "", regex=True)
+                WebinarDetails.drop_duplicates(subset=WebinarDetails.columns, inplace=True)
+                WebinarDetails["Date"] = pd.to_datetime(WebinarDetails["Date"], format="%d-%m-%Y", exact=True).dt.date
+            
+                RawName = [ save_upload(file)  for file in fileupload]
+                UploadedFileName = {os.path.basename(file) : file for file in RawName}
+
+                WebinarDetails["BatchName"] = WebinarDetails["BatchName"].str.strip().str.upper()
+
+                WebinarList = WebinarDetails[WebinarDetails["FileName"].isin(UploadedFileName.keys())][["BatchName","FileName"]]\
+                                        .groupby("BatchName")["FileName"].agg(list).reset_index()
+                
+                WebinarDict = WebinarList.set_index("BatchName").to_dict()["FileName"]
+
+                for batch in WebinarDict:
+                    for filename in WebinarDict[batch]:
+                        #st.write(batch, UploadedFileName[filename])
+                        uploadFiles(UploadedFileName[filename] , FolderMapping[uploadOption] , batch, service,  False, "overwrite")
+
+                missing_data = pd.DataFrame(data={"Mapping Issue" : [i for i in UploadedFileName.keys() if i not in WebinarDetails["FileName"].unique()]})
+                st.dataframe(missing_data, width="stretch", hide_index=True)
+                
+            else:
+                uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, True if delPrevious else False, "overwrite")
             status.update(state="complete", expanded=False )
 
 
         st.success("File uploaded.")
-
-else:
+    
+elif uploadOption not in ["Webinar Attendance"]:
     with st.status("Links", expanded=False):
             col1, col2, col3, col4, col5  = st.columns(5, vertical_alignment = "center",  width="stretch") 
          
