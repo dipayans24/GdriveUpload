@@ -1,4 +1,9 @@
 google-api-python-client
 streamlit
-tqdm
-ServiceAccountCredentials
+gspread
+pandas
+streamlit
+stqdm
+google-oauth2-tool
+gspread-dataframe
+oauth2client
