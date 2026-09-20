@@ -220,7 +220,7 @@ uploadOption  = st.selectbox(label="Select the upload file category", options=["
 
 if uploadOption not in ["Webinar Attendance"]:
     WSDate = str(st.date_input("Select the Next Sunday date",value=next_sunday()))
-    delPrevious = st.checkbox("Delete Existing?" )
+    delPrevious = st.checkbox("Delete Existing?", value=True )
 
 st.divider()
 credentialsGDriveFile = st.file_uploader("Upload the Gdrive Credentials",type=["json"])
