@@ -227,6 +227,7 @@ credentialsGDriveFile = st.file_uploader("Upload the Gdrive Credentials",type=["
 
 if uploadOption in ["Webinar Attendance"]:
     credentialsFile = st.file_uploader("Upload the Credentials",type=["json"])
+    WSDate = 1
 
 fileupload = st.file_uploader(f"Upload the {uploadOption} file(s)", type=["csv"], accept_multiple_files = True if uploadOption in ["Webinar Attendance"] else False)
 
