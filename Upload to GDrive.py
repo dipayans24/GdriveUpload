@@ -11,6 +11,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import streamlit as st
 import pandas as pd
 import gspread
+from stqdm import stqdm
 
 def next_sunday():
     """
@@ -262,7 +263,7 @@ if (fileupload and credentialsGDriveFile and WSDate and uploadOption not in ["We
                 
                 WebinarDict = WebinarList.set_index("BatchName").to_dict()["FileName"]
 
-                for batch in WebinarDict:
+                for batch in stqdm(WebinarDict):
                     for filename in WebinarDict[batch]:
                         #st.write(batch, UploadedFileName[filename])
                         uploadFiles(UploadedFileName[filename] , FolderMapping[uploadOption] , batch, service,  False, "overwrite")
