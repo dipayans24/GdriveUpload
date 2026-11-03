@@ -282,7 +282,7 @@ if (fileupload and credentialsGDriveFile and WSDate and uploadOption not in ["We
                 st.dataframe(missing_data, width="stretch", hide_index=True)
                 
             else:
-                uploadFiles(save_upload(fileupload) , FolderMapping[uploadOption] , WSDate, service, True if delPrevious else False, "overwrite")
+                uploadFiles(save_upload(fileupload, ParquetConversion) , FolderMapping[uploadOption] , WSDate, service, True if delPrevious else False, "overwrite")
             status.update(state="complete", expanded=False )
 
 
