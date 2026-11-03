@@ -182,14 +182,14 @@ def getSheet(sheet_id, sheet_name, credential_Upload):
 def save_upload(fileupload, ParquetConversion = False, fileType = None):
     temp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(temp_dir, fileupload.name)
-    if ParquetConversion: 
-        df = pd.read_csv(tmp_path)
-        tmp_path = tmp_path.replace(".csv", ".parquet")
-        df.to_parquet(tmp_path, index=False, compression = "zstd")
-
-
-    with open(tmp_path, "wb") as f:
-        f.write(fileupload.getvalue())
+    if ParquetConversion:                                           # only convert when parquet output is requested
+        df = pd.read_csv(fileupload)                                # read the CSV straight from the upload (no disk needed)
+        base, _ = os.path.splitext(tmp_path)                        # strip the original extension safely
+        tmp_path = base + ".parquet"                                # build the new .parquet path
+        df.to_parquet(tmp_path, index=False, compression="zstd")    # write the compressed parquet file to disk
+    else:                                                           # no conversion: save the raw upload as-is
+        with open(tmp_path, "wb") as f:                             # open the destination file in binary write mode
+            f.write(fileupload.getvalue())                          # write the uploaded bytes to disk
     
     return tmp_path
         
