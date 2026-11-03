@@ -179,9 +179,14 @@ def getSheet(sheet_id, sheet_name, credential_Upload):
   except:
       return None
   
-def save_upload(fileupload, fileType = None):
+def save_upload(fileupload, ParquetConversion = False, fileType = None):
     temp_dir = tempfile.mkdtemp()
     tmp_path = os.path.join(temp_dir, fileupload.name)
+    if ParquetConversion: 
+        df = pd.read_csv(tmp_path)
+        tmp_path = tmp_path.replace(".csv", ".parquet")
+        df.to_parquet(tmp_path, index=False, compression = "zstd")
+
 
     with open(tmp_path, "wb") as f:
         f.write(fileupload.getvalue())
@@ -221,7 +226,12 @@ uploadOption  = st.selectbox(label="Select the upload file category", options=["
 
 if uploadOption not in ["Webinar Attendance"]:
     WSDate = str(st.date_input("Select the Next Sunday date",value=next_sunday()))
-    delPrevious = st.checkbox("Delete Existing?", value=True )
+    col1, col2 = st.columns(2)
+    with col1:
+        delPrevious = st.checkbox("Delete Existing?", value=True )
+
+    with col2:
+        ParquetConversion = st.checkbox("Convert to Parquet?", value=False )
 
 st.divider()
 credentialsGDriveFile = st.file_uploader("Upload the Gdrive Credentials",type=["json"])
